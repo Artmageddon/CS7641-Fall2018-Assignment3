@@ -1,8 +1,6 @@
-Arthur Baczyk
+# Arthur Baczyk
 
-Machine Learning CS 7641 Fall 2018
-
-Assignment 3
+## Machine Learning CS 7641 Fall 2018 - Assignment 3
 
 To fully evaluate the project, please clone all source code from Github:
 
