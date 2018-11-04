@@ -14,8 +14,13 @@ Data.zip contains all data needed to run this project, consisting of four files 
 
 Each file contains the following sections: 
 *Preparation: Loading the raw data into memory, and doing any required preparation
+
 *Clustering
+
 *Apply dimensionality reduction algorithms
+
 *Reproduce clustering on the transformed data
+
 *Rerun the neural network with the transformed
+
 *Treat the clusters as new features
