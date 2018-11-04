@@ -39,7 +39,7 @@ adjusted_mutual_info_score = []
 silhouette_score = []
 
 components_min = 1
-components_max = 11
+components_max = 30
 
 def initStats():
   wcss = []
@@ -93,14 +93,16 @@ def selectEM(X):
 
   lowest_bic = np.infty
   bic = []
-  aic = []
   n_components_range = range(components_min, components_max)
   cv_types = ['spherical', 'tied', 'diag', 'full']
   for cv_type in cv_types:
     for n_components in n_components_range:
       # Fit a Gaussian mixture with EM
-      gmm = mixture.GaussianMixture(n_components=n_components,
-                                          covariance_type=cv_type)
+      use_init = False
+      if use_init == True:
+        gmm = mixture.GaussianMixture(n_components=n_components, covariance_type=cv_type, n_init=5)
+      else:
+        gmm = mixture.GaussianMixture(n_components=n_components, covariance_type=cv_type)
       gmm.fit(X)
       bic.append(gmm.bic(X))
       if bic[-1] < lowest_bic:
@@ -127,7 +129,7 @@ def selectEM(X):
   spl.set_xlabel('Number of components')
   spl.legend([b[0] for b in bars], cv_types)
 
-  plt.savefig('EM_Adult_BIC_ModelSelection.png')
+  plt.savefig('EM_MNIST_BIC_ModelSelection.png')
   plt.close()
 
   print(clf.n_components)
@@ -177,7 +179,7 @@ def bench_k_means(estimator, name, data):
              metrics.silhouette_score(data, estimator.predict(data),metric='euclidean',sample_size=sample_size),
              float(sum(estimator.predict(data) == labels))/float(len(labels))))
 
-def plot_estimator(estimator_type, data):
+def plot_estimator(estimator_type, data, part):
   for i in range(components_min, components_max):
       estimator = KMeans(n_clusters = i, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
       estimator.fit(data)
@@ -191,12 +193,12 @@ def plot_estimator(estimator_type, data):
       #silhouette_score.append(metrics.silhouette_score(y, kmeans.labels_, metric='euclidean', sample_size=n_Samples))
       print("Fitted " + estimator_type + " for: ", i)
 
-  plotGraph(components_min, components_max, wcss, 'MNIST ' + estimator_type + ' - Elbow method', 'Number of clusters', 'Within cluster sum of squares', 'MNIST-' + estimator_type + '-elbow.png')
-  plotGraph(components_min, components_max, homogeneity_score, 'MNIST ' + estimator_type + ' - Homogeneity Score', 'Number of clusters', 'Homogeneity Score', 'MNIST-' + estimator_type + '-homogeneity.png')
-  plotGraph(components_min, components_max, completeness_score, 'MNIST ' + estimator_type + ' - Completeness Score', 'Number of clusters', 'Completeness Score', 'MNIST-' + estimator_type + '-completeness.png')
-  plotGraph(components_min, components_max, v_measure_score, 'MNIST ' + estimator_type + ' - V_Measure Score', 'Number of clusters', 'V_Measure Score', 'MNIST-' + estimator_type + '-v_measure.png')
-  plotGraph(components_min, components_max, adjusted_rand_score, 'MNIST ' + estimator_type + ' - Adjusted Random Score', 'Number of clusters', 'Adjusted Random Score', 'MNIST-' + estimator_type + '-adjusted_random.png')  
-  plotGraph(components_min, components_max, adjusted_mutual_info_score, 'MNIST ' + estimator_type + ' - Adjusted Mutual Info Score', 'Number of clusters', 'Adjusted Mutual Info Score', 'MNIST-' + estimator_type + '-adjusted_mutual_info.png')
+  plotGraph(components_min, components_max, wcss, 'MNIST ' + estimator_type + ' - Elbow method', 'Number of clusters', 'Within cluster sum of squares', part + '-MNIST-' + estimator_type + '-elbow.png')
+  plotGraph(components_min, components_max, homogeneity_score, 'MNIST ' + estimator_type + ' - Homogeneity Score', 'Number of clusters', 'Homogeneity Score', part + '-MNIST-' + estimator_type + '-homogeneity.png')
+  plotGraph(components_min, components_max, completeness_score, 'MNIST ' + estimator_type + ' - Completeness Score', 'Number of clusters', 'Completeness Score', part + '-MNIST-' + estimator_type + '-completeness.png')
+  plotGraph(components_min, components_max, v_measure_score, 'MNIST ' + estimator_type + ' - V_Measure Score', 'Number of clusters', 'V_Measure Score', part + '-MNIST-' + estimator_type + '-v_measure.png')
+  plotGraph(components_min, components_max, adjusted_rand_score, 'MNIST ' + estimator_type + ' - Adjusted Random Score', 'Number of clusters', 'Adjusted Random Score', part + '-MNIST-' + estimator_type + '-adjusted_random.png')  
+  plotGraph(components_min, components_max, adjusted_mutual_info_score, 'MNIST ' + estimator_type + ' - Adjusted Mutual Info Score', 'Number of clusters', 'Adjusted Mutual Info Score', part + '-MNIST-' + estimator_type + '-adjusted_mutual_info.png')
 
 
 n_digits_i = [2,5,10,20,50]
@@ -204,14 +206,12 @@ print("Part 1: K-Means on MNIST")
 for i in range(5):
     bench_k_means(KMeans(init='k-means++', n_clusters=n_digits_i[i], n_init=10),name="k-means++", data=data)
 
-plot_estimator("Kmeans", data)
+plot_estimator("Kmeans", data, "Part1")
 
 print("Part 1: EM on MNIST")
 for i in range(5):
     bench_k_means(GaussianMixture(n_components=n_digits_i[i],random_state=0),name="GaussianMixture", data=data)
 selectEM(data)
-
-
 
 # in this case the seeding of the centers is deterministic, hence we run the
 # kmeans algorithm only once with n_init=1
@@ -265,7 +265,7 @@ n_digits_i = [2,5,10,20,50]
 for i in range(5):
     bench_k_means(KMeans(init='k-means++', n_clusters=n_digits_i[i], n_init=10),name="k-means++", data=PCA_data_trans)
 print("Part 3: KMeans finished")
-# bench_k_means(KMeans(init='random', n_clusters=n_digits, n_init=10),name="random", data=data)
+
 for i in range(5):
     bench_k_means(GaussianMixture(n_components=n_digits_i[i],random_state=0),name="GaussianMixture", data=PCA_data_trans)
 print("Part 3: GaussianMixture finished")

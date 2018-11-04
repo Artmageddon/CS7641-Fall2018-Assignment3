@@ -13,6 +13,16 @@ from sklearn.datasets import load_digits
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import scale
 
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.cluster import KMeans
+from sklearn import metrics
+from sklearn.mixture import GaussianMixture as GMM
+import itertools
+from sklearn import mixture
+
+
 wcss = []
 homogeneity_score = []
 completeness_score = []
@@ -20,6 +30,9 @@ v_measure_score = []
 adjusted_rand_score = []
 adjusted_mutual_info_score = []
 silhouette_score = []
+
+components_min = 1
+components_max = 30
 
 def initStats():
   wcss = []
@@ -106,6 +119,56 @@ def loadAndProcessData(filename):
 
     return df
 
+def selectEM(X):
+
+  np.random.seed(0)
+
+  lowest_bic = np.infty
+  bic = []
+  n_components_range = range(components_min, components_max)
+  cv_types = ['spherical', 'tied', 'diag', 'full']
+  for cv_type in cv_types:
+    for n_components in n_components_range:
+      # Fit a Gaussian mixture with EM
+      use_init = False
+      if use_init == True:
+        gmm = mixture.GaussianMixture(n_components=n_components, covariance_type=cv_type, n_init=5)
+      else:
+        gmm = mixture.GaussianMixture(n_components=n_components, covariance_type=cv_type)
+      gmm.fit(X)
+      bic.append(gmm.bic(X))
+      if bic[-1] < lowest_bic:
+        lowest_bic = bic[-1]
+        best_gmm = gmm
+
+  bic = np.array(bic)
+  color_iter = itertools.cycle(['navy', 'turquoise', 'cornflowerblue', 'darkorange'])
+  clf = best_gmm
+  bars = []
+
+  # Plot the BIC scores
+  plt.figure(figsize=(8, 6))
+  spl = plt.subplot(1,1,1)
+  for i, (cv_type, color) in enumerate(zip(cv_types, color_iter)):
+    xpos = np.array(n_components_range) + .2 * (i - 2)
+    bars.append(plt.bar(xpos, bic[i * len(n_components_range):
+      (i + 1) * len(n_components_range)],width=.2, color=color))
+  plt.xticks(n_components_range)
+  plt.ylim([bic.min() * 1.01 - .01 * bic.max(), bic.max()])
+  plt.title('BIC score per model')
+  xpos = np.mod(bic.argmin(), len(n_components_range)) + .65 + .2 * np.floor(bic.argmin() / len(n_components_range))
+  plt.text(xpos, bic.min() * 0.97 + .03 * bic.max(), '*', fontsize=14)
+  spl.set_xlabel('Number of components')
+  spl.legend([b[0] for b in bars], cv_types)
+
+  plt.savefig('EM_Adult_BIC_ModelSelection.png')
+  plt.close()
+
+  print(clf.n_components)
+  print(clf.covariance_type)
+
+  return clf
+
 train = loadAndProcessData('adult_training.csv')
 test = loadAndProcessData('adult_test.csv')
 
@@ -123,16 +186,7 @@ data_test = data_test.values
 labels_test = test['salary']
 #n_digits = len(np.unique(digits.target))
 n_digits = len(np.unique(labels))
-'''
-data = train.iloc[:,0:38]
-data = data.values
-n_samples, n_features = data.shape
-labels = train['Consumption_additive']
-data_test = test.iloc[:,0:38]
-data_test = data_test.values
-labels_test = test['Consumption_additive']
-n_digits = len(np.unique(labels))
-'''
+
 sample_size = 50
 
 #(1) Clustering
@@ -142,8 +196,7 @@ print("n_digits: %d, \t n_samples %d, \t n_features %d"
 
 
 print(79 * '_')
-print('% 9s' % 'init'
-      '    time      homo      compl     v-meas      ARI       AMI      silhouette     Accuracy')
+print('% 9s' % 'init\ttime\thomo\tcompl\tv-meas\tARI\tAMI\tsilhouette\tAccuracy')
 
 kmeans = KMeans(n_clusters=2, random_state=0).fit(data)
 float(sum(kmeans.labels_ == labels))/float(len(labels))
@@ -157,24 +210,10 @@ float(sum(EMax.labels_ == labels))/float(len(labels))
 metrics.homogeneity_score(labels,EMax.labels_)
 metrics.completeness_score(labels, EMax.labels_)
 
-#def bench_k_means(estimator, name, data):
-#    t0 = time()
-#    estimator.fit(data)
-#    print('% 9s   %.2fs    %i   %.3f   %.3f   %.3f   %.3f   %.3f    %.3f'
-#          % (name, (time() - t0), estimator.inertia_,
-#             metrics.homogeneity_score(labels, estimator.labels_),
-#             metrics.completeness_score(labels, estimator.labels_),
-#             metrics.v_measure_score(labels, estimator.labels_),
-#             metrics.adjusted_rand_score(labels, estimator.labels_),
-#             metrics.adjusted_mutual_info_score(labels,  estimator.labels_),
-#             metrics.silhouette_score(data, estimator.labels_,
-#                                      metric='euclidean',
-#                                      sample_size=sample_size)))
-
 def bench_k_means(estimator, name, data):
     t0 = time()
     estimator.fit(data)
-    print('% 9s     %.2fs       %.3f        %.3f        %.3f        %.3f        %.3f         %.3f       %.3f'
+    print('% 9s\t%.2fs\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f\t%.3f'
           % (name, (time() - t0), 
              metrics.homogeneity_score(labels, estimator.predict(data)),
              metrics.completeness_score(labels, estimator.predict(data)),
@@ -183,15 +222,40 @@ def bench_k_means(estimator, name, data):
              metrics.adjusted_mutual_info_score(labels,  estimator.predict(data)),
              metrics.silhouette_score(data, estimator.predict(data),metric='euclidean',sample_size=sample_size),
              float(sum(estimator.predict(data) == labels))/float(len(labels))))
+
+def plot_estimator(estimator_type, data, part):
+  for i in range(components_min, components_max):
+      estimator = KMeans(n_clusters = i, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
+      estimator.fit(data)
+
+      wcss.append(estimator.inertia_)
+      homogeneity_score.append(metrics.homogeneity_score(labels, estimator.predict(data)))
+      completeness_score.append(metrics.completeness_score(labels, estimator.predict(data)))
+      v_measure_score.append(metrics.v_measure_score(labels, estimator.predict(data)))
+      adjusted_rand_score.append(metrics.adjusted_rand_score(labels, estimator.predict(data)))
+      adjusted_mutual_info_score.append(metrics.adjusted_mutual_info_score(labels, estimator.predict(data)))
+      #silhouette_score.append(metrics.silhouette_score(y, kmeans.labels_, metric='euclidean', sample_size=n_Samples))
+      print("Fitted " + estimator_type + " for: ", i)
+
+  plotGraph(components_min, components_max, wcss, 'Adult ' + estimator_type + ' - Elbow method', 'Number of clusters', 'Within cluster sum of squares', part + '-Adult-' + estimator_type + '-elbow.png')
+  plotGraph(components_min, components_max, homogeneity_score, 'Adult ' + estimator_type + ' - Homogeneity Score', 'Number of clusters', 'Homogeneity Score', part + '-Adult-' + estimator_type + '-homogeneity.png')
+  plotGraph(components_min, components_max, completeness_score, 'Adult ' + estimator_type + ' - Completeness Score', 'Number of clusters', 'Completeness Score', part + '-Adult-' + estimator_type + '-completeness.png')
+  plotGraph(components_min, components_max, v_measure_score, 'Adult ' + estimator_type + ' - V_Measure Score', 'Number of clusters', 'V_Measure Score', part + '-Adult-' + estimator_type + '-v_measure.png')
+  plotGraph(components_min, components_max, adjusted_rand_score, 'Adult ' + estimator_type + ' - Adjusted Random Score', 'Number of clusters', 'Adjusted Random Score', part + '-Adult-' + estimator_type + '-adjusted_random.png')  
+  plotGraph(components_min, components_max, adjusted_mutual_info_score, 'Adult ' + estimator_type + ' - Adjusted Mutual Info Score', 'Number of clusters', 'Adjusted Mutual Info Score', part + '-Adult-' + estimator_type + '-adjusted_mutual_info.png')
+
+
 n_digits_i = [2,5,10,20,50]
 print("Part 1: K-Means on Adult")
 for i in range(5):
     bench_k_means(KMeans(init='k-means++', n_clusters=n_digits_i[i], n_init=10),name="k-means++", data=data)
-# bench_k_means(KMeans(init='random', n_clusters=n_digits, n_init=10),name="random", data=data)
+
+plot_estimator("Kmeans", data, "Part1")
+
 print("Part 1: EM on Adult")
 for i in range(5):
     bench_k_means(GaussianMixture(n_components=n_digits_i[i],random_state=0),name="GaussianMixture", data=data)
-
+selectEM(data)
 
 # in this case the seeding of the centers is deterministic, hence we run the
 # kmeans algorithm only once with n_init=1
@@ -245,7 +309,9 @@ n_digits_i = [2,5,10,20,50]
 for i in range(5):
     bench_k_means(KMeans(init='k-means++', n_clusters=n_digits_i[i], n_init=10),name="k-means++", data=PCA_data_trans)
 print("Part 3: KMeans finished")
-# bench_k_means(KMeans(init='random', n_clusters=n_digits, n_init=10),name="random", data=data)
+
+
+
 for i in range(5):
     bench_k_means(GaussianMixture(n_components=n_digits_i[i],random_state=0),name="GaussianMixture", data=PCA_data_trans)
 print("Part 3: GaussianMixture finished")
