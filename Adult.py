@@ -244,6 +244,26 @@ def plot_estimator(estimator_type, data, part):
   plotGraph(components_min, components_max, adjusted_rand_score, 'Adult ' + estimator_type + ' - Adjusted Random Score', 'Number of clusters', 'Adjusted Random Score', part + '-Adult-' + estimator_type + '-adjusted_random.png')  
   plotGraph(components_min, components_max, adjusted_mutual_info_score, 'Adult ' + estimator_type + ' - Adjusted Mutual Info Score', 'Number of clusters', 'Adjusted Mutual Info Score', part + '-Adult-' + estimator_type + '-adjusted_mutual_info.png')
 
+def plot_GM(estimator_type, data, part):
+  for i in range(1, 30):
+      estimator = KMeans(n_clusters = i, init = 'k-means++', max_iter = 300, n_init = 10, random_state = 0)
+      estimator.fit(data)
+
+      homogeneity_score.append(metrics.homogeneity_score(labels, estimator.predict(data)))
+      completeness_score.append(metrics.completeness_score(labels, estimator.predict(data)))
+      v_measure_score.append(metrics.v_measure_score(labels, estimator.predict(data)))
+      adjusted_rand_score.append(metrics.adjusted_rand_score(labels, estimator.predict(data)))
+      adjusted_mutual_info_score.append(metrics.adjusted_mutual_info_score(labels, estimator.predict(data)))
+      #silhouette_score.append(metrics.silhouette_score(y, kmeans.labels_, metric='euclidean', sample_size=n_Samples))
+      print("Fitted " + estimator_type + " for: ", i)
+
+  plotGraph(components_min, components_max, wcss, 'Adult ' + estimator_type + ' - Elbow method', 'Number of clusters', 'Within cluster sum of squares', part + '-Adult-' + estimator_type + '-elbow.png')
+  plotGraph(components_min, components_max, homogeneity_score, 'Adult ' + estimator_type + ' - Homogeneity Score', 'Number of clusters', 'Homogeneity Score', part + '-Adult-' + estimator_type + '-homogeneity.png')
+  plotGraph(components_min, components_max, completeness_score, 'Adult ' + estimator_type + ' - Completeness Score', 'Number of clusters', 'Completeness Score', part + '-Adult-' + estimator_type + '-completeness.png')
+  plotGraph(components_min, components_max, v_measure_score, 'Adult ' + estimator_type + ' - V_Measure Score', 'Number of clusters', 'V_Measure Score', part + '-Adult-' + estimator_type + '-v_measure.png')
+  plotGraph(components_min, components_max, adjusted_rand_score, 'Adult ' + estimator_type + ' - Adjusted Random Score', 'Number of clusters', 'Adjusted Random Score', part + '-Adult-' + estimator_type + '-adjusted_random.png')  
+  plotGraph(components_min, components_max, adjusted_mutual_info_score, 'Adult ' + estimator_type + ' - Adjusted Mutual Info Score', 'Number of clusters', 'Adjusted Mutual Info Score', part + '-Adult-' + estimator_type + '-adjusted_mutual_info.png')
+
 
 n_digits_i = [2,5,10,20,50]
 print("Part 1: K-Means on Adult")

@@ -211,7 +211,7 @@ plot_estimator("Kmeans", data, "Part1")
 print("Part 1: EM on MNIST")
 for i in range(5):
     bench_k_means(GaussianMixture(n_components=n_digits_i[i],random_state=0),name="GaussianMixture", data=data)
-selectEM(data)
+#selectEM(data)
 
 # in this case the seeding of the centers is deterministic, hence we run the
 # kmeans algorithm only once with n_init=1
@@ -337,6 +337,10 @@ print("Part 3: LDA Kmeans Finished")
 for i in range(len(n_digits_i)):
     bench_k_means(GaussianMixture(n_components=n_digits_i[i],random_state=0),name="GaussianMixture", data=LDA_data_trans)
 print("Part 3: LDA GaussianMixture Finished")
+
+# Do the PCA pdf stuff here
+
+
 
 
 #(4)
