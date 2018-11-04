@@ -20,6 +20,34 @@ import plotly.io as pio
 import struct
 import itertools
 
+wcss = []
+homogeneity_score = []
+completeness_score = []
+v_measure_score = []
+adjusted_rand_score = []
+adjusted_mutual_info_score = []
+silhouette_score = []
+
+def initStats():
+  wcss = []
+  homogeneity_score = []
+  completeness_score = []
+  v_measure_score = []
+  adjusted_rand_score = []
+  adjusted_mutual_info_score = []
+  silhouette_score = []
+
+def plotGraph(min_range, max_range, data, title, xlab, ylab, filename):
+  #Plotting the results onto a line graph, allowing us to observe 'The elbow'
+  plt.plot(range(min_range, max_range), data)
+
+  plt.title(title)
+  plt.xlabel(xlab)
+  plt.ylabel(ylab)
+  plt.savefig(filename)
+  print(filename + ' plot saved!')
+  plt.close()
+
 def read_idx(filename):
     with open(filename, 'rb') as f:
         zero, data_type, dims = struct.unpack('>HBB', f.read(4))
@@ -27,7 +55,7 @@ def read_idx(filename):
         return np.fromstring(f.read(), dtype=np.uint8).reshape(shape)
 
 
-def load_mnist(n=10000):
+def load_mnist(n=1000):
 
     raw_train = read_idx("train-images-idx3-ubyte")
     train_data = np.reshape(raw_train, (60000, 28*28))

@@ -13,6 +13,34 @@ from sklearn.datasets import load_digits
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import scale
 
+wcss = []
+homogeneity_score = []
+completeness_score = []
+v_measure_score = []
+adjusted_rand_score = []
+adjusted_mutual_info_score = []
+silhouette_score = []
+
+def initStats():
+  wcss = []
+  homogeneity_score = []
+  completeness_score = []
+  v_measure_score = []
+  adjusted_rand_score = []
+  adjusted_mutual_info_score = []
+  silhouette_score = []
+  
+def plotGraph(min_range, max_range, data, title, xlab, ylab, filename):
+  #Plotting the results onto a line graph, allowing us to observe 'The elbow'
+  plt.plot(range(min_range, max_range), data)
+
+  plt.title(title)
+  plt.xlabel(xlab)
+  plt.ylabel(ylab)
+  plt.savefig(filename)
+  print(filename + ' plot saved!')
+  plt.close()
+
 def f(x):
     if x['workclass'] == ' Federal-gov' or x['workclass']== ' Local-gov' or x['workclass']==' State-gov':
         return 'govt'
